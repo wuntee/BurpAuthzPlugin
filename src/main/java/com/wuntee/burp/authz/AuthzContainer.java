@@ -6,6 +6,8 @@ import java.awt.Container;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
@@ -15,13 +17,14 @@ import java.util.List;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.SwingConstants;
-import javax.swing.border.LineBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 
@@ -29,9 +32,6 @@ import burp.IBurpExtenderCallbacks;
 import burp.IHttpRequestResponse;
 import burp.IRequestInfo;
 import burp.IResponseInfo;
-import burp.ITextEditor;
-import javax.swing.JPopupMenu;
-import javax.swing.JMenuItem;
 
 public class AuthzContainer extends Container {
 	private static final long serialVersionUID = 31337L;
@@ -39,21 +39,22 @@ public class AuthzContainer extends Container {
 	private JTable requestTable;
 	private JTable responseTable;
 	
-	private ITextEditor originalRequestEditor;
-	private ITextEditor originalResponseEditor;
-	private ITextEditor modifiedRequestEditor;
-	private ITextEditor responseEditor;
-	private ITextEditor cookieEditor;
+	private BurpTextEditorWithData originalRequestEditor;
+	private BurpTextEditorWithData originalResponseEditor;
+	private BurpTextEditorWithData modifiedRequestEditor;
+	private BurpTextEditorWithData responseEditor;
+	private BurpTextEditorWithData cookieEditor;
 	
 	private DefaultTableModel requestTableModel;
 	private DefaultTableModel responseTableModel;
 	
 	private IBurpExtenderCallbacks burpCallback;
-	
+
 	public static String REQUEST_OBJECT_KEY = "req_obj_key";
 	public static String RESPONSE_OBJECT_KEY = "resp_obj_key";
 	private static Object[] REQUEST_HEADERS = new Object[]{"Method", "URL", "Parms", "Response Code", REQUEST_OBJECT_KEY};
 	private static Object[] RESPONSE_HEADERS = new Object[]{"Method", "URL", "Parms","Orig Response Size", "Response Size", "Orig Return Code", "Return Code", REQUEST_OBJECT_KEY, RESPONSE_OBJECT_KEY};
+	public static String TEXTEDITOR_REQUET_KEY = IHttpRequestResponse.class.toString();
 	
 	public AuthzContainer(IBurpExtenderCallbacks burpCallback) {
 		this.burpCallback = burpCallback;
@@ -63,15 +64,28 @@ public class AuthzContainer extends Container {
 		setLayout(gridBagLayout);
 		
 		// Create a model that has the Object reference, but do not show the object reference in the GUI
-		requestTableModel = new DefaultTableModel(null, REQUEST_HEADERS);		
-		responseTableModel = new DefaultTableModel(null, RESPONSE_HEADERS);
+		requestTableModel = new DefaultTableModel(null, REQUEST_HEADERS){
+		    public boolean isCellEditable(int row, int column) {
+		        return false;
+		     }
+		};		
+		responseTableModel = new DefaultTableModel(null, RESPONSE_HEADERS){
+		    public boolean isCellEditable(int row, int column) {
+		        return false;
+		     }
+		};
 		
 		
 		// TABBED PANNEL
-		originalRequestEditor = burpCallback.createTextEditor();
-		originalResponseEditor = burpCallback.createTextEditor();
-		modifiedRequestEditor = burpCallback.createTextEditor();
-		responseEditor = burpCallback.createTextEditor();
+		originalRequestEditor = new BurpTextEditorWithData(burpCallback);
+		originalResponseEditor = new BurpTextEditorWithData(burpCallback);
+		modifiedRequestEditor = new BurpTextEditorWithData(burpCallback);
+		responseEditor = new BurpTextEditorWithData(burpCallback);
+		
+		addRightClickActions(originalRequestEditor);
+		addRightClickActions(originalResponseEditor);
+		addRightClickActions(modifiedRequestEditor);
+		addRightClickActions(responseEditor);
 		
 		
 		// COOKIE EDITOR
@@ -85,7 +99,7 @@ public class AuthzContainer extends Container {
 		gbl_panel_3.columnWidths = new int[]{0};
 		gbl_panel_3.rowHeights = new int[]{0, 100};
 		gbl_panel_3.columnWeights = new double[]{Double.MIN_VALUE};
-		gbl_panel_3.rowWeights = new double[]{0, 1, Double.MIN_VALUE};
+		gbl_panel_3.rowWeights = new double[]{0, 1};
 		panel_3.setLayout(gbl_panel_3);
 		
 		JLabel label = new JLabel("New Cookie", SwingConstants.LEFT);
@@ -96,7 +110,7 @@ public class AuthzContainer extends Container {
 		gbc_label.gridy = 0;
 		panel_3.add(label, gbc_label);
 		
-		cookieEditor = burpCallback.createTextEditor();
+		cookieEditor = new BurpTextEditorWithData(burpCallback);
 		cookieEditor.setText("Cookie:".getBytes());
 		JScrollPane scrollPane = new JScrollPane(cookieEditor.getComponent());
 		GridBagConstraints gbc_scrollPane = new GridBagConstraints();
@@ -123,7 +137,7 @@ public class AuthzContainer extends Container {
 		gbl_panel.columnWidths = new int[]{0, 0};
 		gbl_panel.rowHeights = new int[]{0};
 		gbl_panel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gbl_panel.rowWeights = new double[]{0.0, 1.0, 0.0, 1.0, Double.MIN_VALUE};
+		gbl_panel.rowWeights = new double[]{0.0, 1.0, 0.0, 1.0};
 		panel.setLayout(gbl_panel);
 		
 		
@@ -137,24 +151,24 @@ public class AuthzContainer extends Container {
 		gbc_label_1.gridy = 0;
 		panel.add(label_1, gbc_label_1);
 		requestTable = new JTable(requestTableModel);
-		requestTable.setBorder(new LineBorder(new Color(0, 0, 0)));
+		requestTable.setAutoCreateRowSorter(true);
+		requestTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+		//"Method", "URL", "Parms", "Response Code", REQUEST_OBJECT_KEY
+		requestTable.getColumnModel().getColumn(0).setPreferredWidth(50);
+		requestTable.getColumnModel().getColumn(1).setPreferredWidth(600);
+		requestTable.getColumnModel().getColumn(2).setPreferredWidth(50);
+		requestTable.getColumnModel().getColumn(3).setPreferredWidth(50);
 		requestTable.addMouseListener(new MouseAdapter(){
 		       public void mouseClicked(MouseEvent e) {
 		    	   responseTable.clearSelection();
-		    	   originalRequestEditor.setText(getRequestObjectByIndex(requestTableModel, requestTable.getSelectedRow()).getRequest());
-		    	   originalResponseEditor.setText(getRequestObjectByIndex(requestTableModel, requestTable.getSelectedRow()).getResponse());
-		    	   modifiedRequestEditor.setText(new byte[]{});
-		    	   responseEditor.setText(new byte[]{});
+		    	   setData(getRequestObjectByIndex(requestTableModel, requestTable.getSelectedRow()), null);
 		       }
 		});
 		requestTable.addKeyListener(new KeyAdapter() {
 			@Override
 			public void keyReleased(KeyEvent arg0) {
 	    	   responseTable.clearSelection();
-	    	   originalRequestEditor.setText(getRequestObjectByIndex(requestTableModel, requestTable.getSelectedRow()).getRequest());
-	    	   originalResponseEditor.setText(getRequestObjectByIndex(requestTableModel, requestTable.getSelectedRow()).getResponse());
-	    	   modifiedRequestEditor.setText(new byte[]{});
-	    	   responseEditor.setText(new byte[]{});
+	    	   setData(getRequestObjectByIndex(requestTableModel, requestTable.getSelectedRow()), null);
 			}
 		});
 		requestTable.removeColumn(requestTable.getColumn(REQUEST_OBJECT_KEY));
@@ -195,27 +209,29 @@ public class AuthzContainer extends Container {
 				return c;
 			}
 		};
-		responseTable.setBorder(new LineBorder(new Color(0, 0, 0)));
-		
+		responseTable.setAutoCreateRowSorter(true);
+		responseTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+		//"Method", "URL", "Parms","Orig Response Size", "Response Size", "Orig Return Code", "Return Code", REQUEST_OBJECT_KEY, RESPONSE_OBJECT_KEY
+		responseTable.getColumnModel().getColumn(0).setPreferredWidth(50);
+		responseTable.getColumnModel().getColumn(1).setPreferredWidth(600);
+		responseTable.getColumnModel().getColumn(2).setPreferredWidth(50);
+		responseTable.getColumnModel().getColumn(3).setPreferredWidth(50);
+		responseTable.getColumnModel().getColumn(4).setPreferredWidth(50);
+		responseTable.getColumnModel().getColumn(5).setPreferredWidth(50);
+		responseTable.getColumnModel().getColumn(6).setPreferredWidth(50);
 		responseTable.addMouseListener(new MouseAdapter(){
 		       public void mouseClicked(MouseEvent e) {
 		    	   requestTable.clearSelection();
-		    	   //editor.setText(getRequestObjectByIndex(requestTable.getSelectedRow()).getRequest());
-		    	   originalRequestEditor.setText(getRequestObjectByIndex(responseTableModel, responseTable.getSelectedRow()).getRequest());
-		    	   originalResponseEditor.setText(getRequestObjectByIndex(responseTableModel, responseTable.getSelectedRow()).getResponse());
-		    	   modifiedRequestEditor.setText(getResponseObjectByIndex(responseTableModel, responseTable.getSelectedRow()).getRequest());
-		    	   responseEditor.setText(getResponseObjectByIndex(responseTableModel, responseTable.getSelectedRow()).getResponse());
+		    	   setData(getRequestObjectByIndex(responseTableModel, responseTable.getSelectedRow()), 
+		    			   getRequestObjectByIndex(responseTableModel, responseTable.getSelectedRow()));
 		       }
 		});
 		responseTable.addKeyListener(new KeyAdapter() {
 			@Override
 			public void keyReleased(KeyEvent e) {
 		    	   requestTable.clearSelection();
-		    	   //editor.setText(getRequestObjectByIndex(requestTable.getSelectedRow()).getRequest());
-		    	   originalRequestEditor.setText(getRequestObjectByIndex(responseTableModel, responseTable.getSelectedRow()).getRequest());
-		    	   originalResponseEditor.setText(getRequestObjectByIndex(responseTableModel, responseTable.getSelectedRow()).getResponse());
-		    	   modifiedRequestEditor.setText(getResponseObjectByIndex(responseTableModel, responseTable.getSelectedRow()).getRequest());
-		    	   responseEditor.setText(getResponseObjectByIndex(responseTableModel, responseTable.getSelectedRow()).getResponse());
+		    	   setData(getRequestObjectByIndex(responseTableModel, responseTable.getSelectedRow()), 
+		    			   getRequestObjectByIndex(responseTableModel, responseTable.getSelectedRow()));
 			}
 		});
 		responseTable.removeColumn(responseTable.getColumn(REQUEST_OBJECT_KEY));
@@ -239,20 +255,7 @@ public class AuthzContainer extends Container {
 		
 		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
 		JScrollPane scrollPane_3 = new JScrollPane(originalRequestEditor.getComponent());
-		tabbedPane.addTab("Original Request", scrollPane_3);
-		
-		/*
-		JPopupMenu popupMenu = new JPopupMenu();
-		addPopup(originalResponseEditor.getComponent(), popupMenu);
-		JMenuItem mntmSendToRepeater = new JMenuItem("Send to repeater");
-		mntmSendToRepeater.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent arg0) {
-				//burpCallback.sendToRepeater(host, port, useHttps, request, tabCaption)
-			}
-		});
-		popupMenu.add(mntmSendToRepeater);
-		*/
+		tabbedPane.addTab("Original Request", scrollPane_3);		
 		
 		tabbedPane.addTab("Original Response", new JScrollPane(originalResponseEditor.getComponent()));
 		tabbedPane.addTab("Modified Request", new JScrollPane(modifiedRequestEditor.getComponent()));
@@ -316,6 +319,31 @@ public class AuthzContainer extends Container {
 		gbc_btnClearResponses.gridx = 2;
 		gbc_btnClearResponses.gridy = 0;
 		panel_2.add(btnClearResponses, gbc_btnClearResponses);
+	}
+	
+	private void setData(IHttpRequestResponse request, IHttpRequestResponse response){
+		if(request != null){
+			originalRequestEditor.setText(request.getRequest());
+			originalRequestEditor.putData(TEXTEDITOR_REQUET_KEY, request);
+			originalResponseEditor.setText(request.getResponse());
+			originalResponseEditor.putData(TEXTEDITOR_REQUET_KEY, request);
+		} else {
+			originalRequestEditor.setText(new byte[]{});
+			originalRequestEditor.removeData(TEXTEDITOR_REQUET_KEY);
+			originalResponseEditor.setText(new byte[]{});
+			originalResponseEditor.removeData(TEXTEDITOR_REQUET_KEY);
+		}
+		if(response != null){
+			modifiedRequestEditor.setText(response.getRequest());
+			modifiedRequestEditor.putData(TEXTEDITOR_REQUET_KEY, response);
+			responseEditor.setText(response.getResponse());
+			responseEditor.putData(TEXTEDITOR_REQUET_KEY, response);
+		} else {
+			modifiedRequestEditor.setText(new byte[]{});
+			modifiedRequestEditor.removeData(TEXTEDITOR_REQUET_KEY);
+			responseEditor.setText(new byte[]{});
+			responseEditor.removeData(TEXTEDITOR_REQUET_KEY);
+		}
 	}
 	
 	private void runRequest(){
@@ -410,4 +438,34 @@ public class AuthzContainer extends Container {
 			}
 		});
 	}
+	
+	private void addRightClickActions(final BurpTextEditorWithData editor){
+		JPopupMenu popupMenu = new JPopupMenu();
+		
+		JMenuItem mntmSendToRepeater = new JMenuItem("Send to repeater");
+		mntmSendToRepeater.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e) {
+		    	   IHttpRequestResponse req = (IHttpRequestResponse)editor.getData(TEXTEDITOR_REQUET_KEY);
+		    	   System.out.println(req);
+		    	   if(req != null){
+		    		   BurpApiHelper.sendRequestResponseToRepeater(burpCallback, req);
+		    	   }				
+			}
+		});
+		popupMenu.add(mntmSendToRepeater);
+		JMenuItem mntmSendToIntruder = new JMenuItem("Send to intruder");
+		mntmSendToRepeater.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e) {
+		    	   IHttpRequestResponse req = (IHttpRequestResponse)editor.getData(TEXTEDITOR_REQUET_KEY);
+		    	   System.out.println(req);
+		    	   if(req != null){
+		    		   BurpApiHelper.sendRequestResponseToIntruder(burpCallback, req);
+		    	   }				
+			}
+		});
+		popupMenu.add(mntmSendToIntruder);
+		addPopup(editor.getComponent(), popupMenu);
+	}
+	
+
 }

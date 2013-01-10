@@ -32,6 +32,6 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="/Users/wuntee/workspace-java/BurpAuthzPlugin/lib/burpsuite_pro_v1.5.03.jar"/>
+	<classpathentry kind="lib" path="/Users/wuntee/workspace-java/BurpAuthzPlugin/lib/burpsuite_pro_v1.5.04.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
