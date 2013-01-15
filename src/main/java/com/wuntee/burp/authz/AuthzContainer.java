@@ -445,7 +445,6 @@ public class AuthzContainer extends Container {
 		JMenuItem mntmSendToRepeater = new JMenuItem("Send to repeater");
 		mntmSendToRepeater.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e) {
-				System.out.println("send to repeater");
 		    	   IHttpRequestResponse req = (IHttpRequestResponse)editor.getData(TEXTEDITOR_REQUET_KEY);
 		    	   if(req != null){
 		    		   BurpApiHelper.sendRequestResponseToRepeater(burpCallback, req);
@@ -456,7 +455,6 @@ public class AuthzContainer extends Container {
 		JMenuItem mntmSendToIntruder = new JMenuItem("Send to intruder");
 		mntmSendToIntruder.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e) {
-				System.out.println("SEND TO INTRUDER");
 		    	   IHttpRequestResponse req = (IHttpRequestResponse)editor.getData(TEXTEDITOR_REQUET_KEY);
 		    	   if(req != null){
 		    		   BurpApiHelper.sendRequestResponseToIntruder(burpCallback, req);
