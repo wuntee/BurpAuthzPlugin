@@ -6,4 +6,4 @@ Usage:
 3. Click 'Run'
 4. Notice differences in responses
 
-![Alt text](/wuntee/BurpAuthzPlugin/master/screenshots/Authz.png)
+![Alt text](https://raw.github.com/wuntee/BurpAuthzPlugin/master/screenshots/Authz.png)
