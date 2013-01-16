@@ -6,4 +6,4 @@ Usage:
 3. Click 'Run'
 4. Notice differences in responses
 
-![Alt text](http://github.chi.matasano.com/mathew/BurpAuthzPlugin/raw/master/screenshots/Authz.png)
+![Alt text](/wuntee/BurpAuthzPlugin/master/screenshots/Authz.png)
