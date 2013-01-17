@@ -33,6 +33,8 @@ import burp.IHttpRequestResponse;
 import burp.IRequestInfo;
 import burp.IResponseInfo;
 
+import com.nothome.delta.Delta;
+
 public class AuthzContainer extends Container {
 	private static final long serialVersionUID = 31337L;
 	
@@ -50,14 +52,18 @@ public class AuthzContainer extends Container {
 	
 	private IBurpExtenderCallbacks burpCallback;
 
+	private Delta delta;
+	
 	public static String REQUEST_OBJECT_KEY = "req_obj_key";
 	public static String RESPONSE_OBJECT_KEY = "resp_obj_key";
 	private static Object[] REQUEST_HEADERS = new Object[]{"Method", "URL", "Parms", "Response Code", REQUEST_OBJECT_KEY};
-	private static Object[] RESPONSE_HEADERS = new Object[]{"Method", "URL", "Parms","Orig Response Size", "Response Size", "Orig Return Code", "Return Code", REQUEST_OBJECT_KEY, RESPONSE_OBJECT_KEY};
+	private static Object[] RESPONSE_HEADERS = new Object[]{"Method", "URL", "Parms","Orig Response Size", "Response Size", "Orig Return Code", "Return Code", "Diff Bytes", "Similarity", REQUEST_OBJECT_KEY, RESPONSE_OBJECT_KEY};
 	public static String TEXTEDITOR_REQUET_KEY = IHttpRequestResponse.class.toString();
 	
 	public AuthzContainer(IBurpExtenderCallbacks burpCallback) {
+		
 		this.burpCallback = burpCallback;
+		this.delta = new Delta();
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWeights = new double[]{1.0};
 		gridBagLayout.rowWeights = new double[]{0, 1.0, 0};
@@ -211,7 +217,7 @@ public class AuthzContainer extends Container {
 		};
 		responseTable.setAutoCreateRowSorter(true);
 		responseTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-		//"Method", "URL", "Parms","Orig Response Size", "Response Size", "Orig Return Code", "Return Code", REQUEST_OBJECT_KEY, RESPONSE_OBJECT_KEY
+		//"Method", "URL", "Parms","Orig Response Size", "Response Size", "Orig Return Code", "Return Code", "Diff Bytes", REQUEST_OBJECT_KEY, RESPONSE_OBJECT_KEY
 		responseTable.getColumnModel().getColumn(0).setPreferredWidth(50);
 		responseTable.getColumnModel().getColumn(1).setPreferredWidth(600);
 		responseTable.getColumnModel().getColumn(2).setPreferredWidth(50);
@@ -219,6 +225,8 @@ public class AuthzContainer extends Container {
 		responseTable.getColumnModel().getColumn(4).setPreferredWidth(50);
 		responseTable.getColumnModel().getColumn(5).setPreferredWidth(50);
 		responseTable.getColumnModel().getColumn(6).setPreferredWidth(50);
+		responseTable.getColumnModel().getColumn(7).setPreferredWidth(50);
+		responseTable.getColumnModel().getColumn(8).setPreferredWidth(50);
 		responseTable.addMouseListener(new MouseAdapter(){
 		       public void mouseClicked(MouseEvent e) {
 		    	   requestTable.clearSelection();
@@ -368,7 +376,7 @@ public class AuthzContainer extends Container {
 				}
 	
 				byte message[] = burpCallback.getHelpers().buildHttpMessage(headers, Arrays.copyOfRange(rawRequest, reqInfo.getBodyOffset(), rawRequest.length));
-				System.out.println(new String(message));
+				
 				IHttpRequestResponse resp = burpCallback.makeHttpRequest(req.getHttpService(), message);
 				
 				addResponse(req, resp);
@@ -380,12 +388,31 @@ public class AuthzContainer extends Container {
 	}
 	
 	private void addResponse(IHttpRequestResponse request, IHttpRequestResponse response){
-		//{"Method", "URL", "Parms","Orig Response Size", "Response Size", "Orig Return Code", "Return Code", REQUEST_OBJECT_KEY, RESPONSE_OBJECT_KEY};
+		//{"Method", "URL", "Parms","Orig Response Size", "Response Size", "Orig Return Code", "Return Code", "Diff Bytes", "similarity", REQUEST_OBJECT_KEY, RESPONSE_OBJECT_KEY};
 		IRequestInfo reqInfo = burpCallback.getHelpers().analyzeRequest(response);
 		IRequestInfo origReqInfo = burpCallback.getHelpers().analyzeRequest(request);
 		
 		IResponseInfo respInfo = burpCallback.getHelpers().analyzeResponse(response.getResponse());
 		IResponseInfo origrespInfo = burpCallback.getHelpers().analyzeResponse(request.getResponse());
+		
+		int diff = -1;
+		int similarity = -1;
+		try{
+			byte[] diffb = delta.compute(request.getResponse(), response.getResponse());
+			diff = diffb.length;
+			double total = request.getResponse().length + response.getRequest().length;
+			double percent = (1.0-((diff*2)/total))*100.0;
+			similarity = (int)percent;
+			if(similarity > 100){
+				similarity = 100;
+			} else if(similarity < 0){
+				similarity = 0;
+			}
+				
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+			e.printStackTrace();
+		}
 		
 		responseTableModel.addRow(new Object[]{
 				reqInfo.getMethod(), 
@@ -394,7 +421,9 @@ public class AuthzContainer extends Container {
 				request.getResponse().length, 
 				response.getResponse().length,
 				origrespInfo.getStatusCode(),
-				respInfo.getStatusCode(), 
+				respInfo.getStatusCode(),
+				diff,
+				similarity,
 				request, 
 				response
 		});

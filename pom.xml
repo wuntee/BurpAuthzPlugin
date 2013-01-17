@@ -2,5 +2,19 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.wuntee</groupId>
   <artifactId>BurpAuthzPlugin</artifactId>
-  <version>0.0.2-SNAPSHOT</version>
+  <version>0.0.3-SNAPSHOT</version>
+    <repositories>
+    <repository>
+      <id>javaxdelta.sourceforge.net</id>
+      <url>http://javaxdelta.sourceforge.net/maven2/repository</url>
+    </repository>
+  </repositories>
+  
+    <dependencies>
+    	<dependency>
+    		<groupId>com.nothome</groupId>
+    		<artifactId>javaxdelta</artifactId>
+    		<version>2.0.1</version>
+    	</dependency>
+    </dependencies>
 </project>
