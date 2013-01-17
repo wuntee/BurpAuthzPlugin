@@ -223,7 +223,7 @@ public class AuthzContainer extends Container {
 		       public void mouseClicked(MouseEvent e) {
 		    	   requestTable.clearSelection();
 		    	   setData(getRequestObjectByIndex(responseTableModel, responseTable.getSelectedRow()), 
-		    			   getRequestObjectByIndex(responseTableModel, responseTable.getSelectedRow()));
+		    			   getResponseObjectByIndex(responseTableModel, responseTable.getSelectedRow()));
 		       }
 		});
 		responseTable.addKeyListener(new KeyAdapter() {
@@ -231,7 +231,7 @@ public class AuthzContainer extends Container {
 			public void keyReleased(KeyEvent e) {
 		    	   requestTable.clearSelection();
 		    	   setData(getRequestObjectByIndex(responseTableModel, responseTable.getSelectedRow()), 
-		    			   getRequestObjectByIndex(responseTableModel, responseTable.getSelectedRow()));
+		    			   getResponseObjectByIndex(responseTableModel, responseTable.getSelectedRow()));
 			}
 		});
 		responseTable.removeColumn(responseTable.getColumn(REQUEST_OBJECT_KEY));
@@ -368,6 +368,7 @@ public class AuthzContainer extends Container {
 				}
 	
 				byte message[] = burpCallback.getHelpers().buildHttpMessage(headers, Arrays.copyOfRange(rawRequest, reqInfo.getBodyOffset(), rawRequest.length));
+				System.out.println(new String(message));
 				IHttpRequestResponse resp = burpCallback.makeHttpRequest(req.getHttpService(), message);
 				
 				addResponse(req, resp);
@@ -382,7 +383,7 @@ public class AuthzContainer extends Container {
 		//{"Method", "URL", "Parms","Orig Response Size", "Response Size", "Orig Return Code", "Return Code", REQUEST_OBJECT_KEY, RESPONSE_OBJECT_KEY};
 		IRequestInfo reqInfo = burpCallback.getHelpers().analyzeRequest(response);
 		IRequestInfo origReqInfo = burpCallback.getHelpers().analyzeRequest(request);
-
+		
 		IResponseInfo respInfo = burpCallback.getHelpers().analyzeResponse(response.getResponse());
 		IResponseInfo origrespInfo = burpCallback.getHelpers().analyzeResponse(request.getResponse());
 		
