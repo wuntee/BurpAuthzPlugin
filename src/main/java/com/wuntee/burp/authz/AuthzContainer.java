@@ -41,7 +41,8 @@ public class AuthzContainer extends Container {
 	private JTable requestTable;
 	private JTable responseTable;
 	
-	private BurpTextEditorWithData originalRequestEditor;
+	//private BurpTextEditorWithData originalRequestEditor;
+	private TabbedHttpEditor originalRequest;
 	private BurpTextEditorWithData originalResponseEditor;
 	private BurpTextEditorWithData modifiedRequestEditor;
 	private BurpTextEditorWithData responseEditor;
@@ -83,12 +84,13 @@ public class AuthzContainer extends Container {
 		
 		
 		// TABBED PANNEL
-		originalRequestEditor = new BurpTextEditorWithData(burpCallback);
+		originalRequest = new TabbedHttpEditor(burpCallback);
+		//originalRequestEditor = new BurpTextEditorWithData(burpCallback);
 		originalResponseEditor = new BurpTextEditorWithData(burpCallback);
 		modifiedRequestEditor = new BurpTextEditorWithData(burpCallback);
 		responseEditor = new BurpTextEditorWithData(burpCallback);
 		
-		addRightClickActions(originalRequestEditor);
+		addRightClickActions(originalRequest.getTextEditor());
 		addRightClickActions(originalResponseEditor);
 		addRightClickActions(modifiedRequestEditor);
 		addRightClickActions(responseEditor);
@@ -262,7 +264,7 @@ public class AuthzContainer extends Container {
 		panel_1.setLayout(gbl_panel_1);
 		
 		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-		JScrollPane scrollPane_3 = new JScrollPane(originalRequestEditor.getComponent());
+		JScrollPane scrollPane_3 = new JScrollPane(originalRequest);
 		tabbedPane.addTab("Original Request", scrollPane_3);		
 		
 		tabbedPane.addTab("Original Response", new JScrollPane(originalResponseEditor.getComponent()));
@@ -331,13 +333,15 @@ public class AuthzContainer extends Container {
 	
 	private void setData(IHttpRequestResponse request, IHttpRequestResponse response){
 		if(request != null){
-			originalRequestEditor.setText(request.getRequest());
-			originalRequestEditor.putData(TEXTEDITOR_REQUET_KEY, request);
+			//originalRequestEditor.setText(request.getRequest());
+			//originalRequestEditor.putData(TEXTEDITOR_REQUET_KEY, request);
+			originalRequest.loadRequest(request);
 			originalResponseEditor.setText(request.getResponse());
 			originalResponseEditor.putData(TEXTEDITOR_REQUET_KEY, request);
 		} else {
-			originalRequestEditor.setText(new byte[]{});
-			originalRequestEditor.removeData(TEXTEDITOR_REQUET_KEY);
+			//originalRequestEditor.setText(new byte[]{});
+			//originalRequestEditor.removeData(TEXTEDITOR_REQUET_KEY);
+			originalRequest.clearData();
 			originalResponseEditor.setText(new byte[]{});
 			originalResponseEditor.removeData(TEXTEDITOR_REQUET_KEY);
 		}
