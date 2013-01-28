@@ -23,6 +23,7 @@ import burp.IHttpRequestResponse;
 import burp.IParameter;
 import burp.IRequestInfo;
 import burp.ITextEditor;
+import javax.swing.JPanel;
 
 public class TabbedHttpEditor extends Container {
 
@@ -59,21 +60,23 @@ public class TabbedHttpEditor extends Container {
 		
 		addRightClickActions(textEditor.getComponent());
 		tabbedPane.addTab("Raw", null, new JScrollPane(textEditor.getComponent()), null);
-		textEditor.getComponent().setSize(100, 100);
+		
 		
 		paramsTableModel = new DefaultTableModel(null, PARAMS_HEADERS);
 		JTable table = new JTable(paramsTableModel);
-		JScrollPane scrollPane_1 = new JScrollPane(table);
-		addRightClickActions(table);
+		table.setAutoscrolls(true);
 		table.setAutoCreateRowSorter(true);
-		tabbedPane.addTab("Params", null,scrollPane_1, null);
+		table.setFillsViewportHeight(true);
+		addRightClickActions(table);
+		tabbedPane.addTab("Params", null, new JScrollPane(table), null);
 		
 		headersTableModel = new DefaultTableModel(null, HEADERS_HEADERS);
 		JTable table2 = new JTable(headersTableModel);
-		JScrollPane scrollPane_2 = new JScrollPane(table2);
+		table2.setFillsViewportHeight(true);
 		addRightClickActions(table2);
 		table2.setAutoCreateRowSorter(true);
-		tabbedPane.addTab("Headers", null, scrollPane_2, null);
+		tabbedPane.addTab("Headers", null, new JScrollPane(table2), null);
+		
 	}
 	
 	public void loadRequest(IHttpRequestResponse request){

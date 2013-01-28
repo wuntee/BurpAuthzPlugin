@@ -166,11 +166,12 @@ public class AuthzContainer extends Container {
 		JMenuItem mntmRemove = new JMenuItem("Remove");
 		mntmRemove.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e) {
-				int selected[] = requestTable.getSelectedRows();
-				for(int col : selected){
-					requestTableModel.getDataVector().remove(col);
-				}
-				requestTableModel.fireTableDataChanged();
+				int[] selectedRows = requestTable.getSelectedRows();
+		        if (selectedRows.length > 0) {
+		            for (int i = selectedRows.length - 1; i >= 0; i--) {
+		                requestTableModel.removeRow(selectedRows[i]);
+		            }
+		        }
 			}
 		});
 		popupMenu.add(mntmRemove);
