@@ -39,12 +39,10 @@ public class BurpTextEditorWithData implements ITextEditor {
 	}
 
 	public Component getComponent() {
-		// TODO Auto-generated method stub
 		return this.textEditor.getComponent();
 	}
 
 	public void setEditable(boolean editable) {
-		// TODO Auto-generated method stub
 		this.textEditor.setEditable(editable);
 	}
 

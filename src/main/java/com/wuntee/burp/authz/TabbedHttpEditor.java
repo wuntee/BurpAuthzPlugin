@@ -2,13 +2,14 @@ package com.wuntee.burp.authz;
 
 import java.awt.Component;
 import java.awt.Container;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
+import java.awt.Dimension;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.UnsupportedEncodingException;
+import java.util.LinkedList;
 import java.util.List;
 
 import javax.swing.JMenuItem;
@@ -17,13 +18,14 @@ import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 
 import burp.IBurpExtenderCallbacks;
 import burp.IHttpRequestResponse;
 import burp.IParameter;
 import burp.IRequestInfo;
+import burp.IResponseInfo;
 import burp.ITextEditor;
-import javax.swing.JPanel;
 
 public class TabbedHttpEditor extends Container {
 
@@ -42,28 +44,27 @@ public class TabbedHttpEditor extends Container {
 	public TabbedHttpEditor(IBurpExtenderCallbacks burpCallback){
 		this.burpCallback = burpCallback;
 		
+		setLayout(new GridLayout(0, 1, 0, 0));
+
 		textEditor = burpCallback.createTextEditor();
 		
-		GridBagLayout gridBagLayout = new GridBagLayout();
-		gridBagLayout.columnWidths = new int[]{0, 0};
-		gridBagLayout.rowHeights = new int[]{0, 0};
-		gridBagLayout.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gridBagLayout.rowWeights = new double[]{1.0, Double.MIN_VALUE};
-		setLayout(gridBagLayout);
-		
 		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-		GridBagConstraints gbc_tabbedPane = new GridBagConstraints();
-		gbc_tabbedPane.fill = GridBagConstraints.BOTH;
-		gbc_tabbedPane.gridx = 0;
-		gbc_tabbedPane.gridy = 0;
-		add(tabbedPane, gbc_tabbedPane);
+		add(tabbedPane);
 		
 		addRightClickActions(textEditor.getComponent());
 		tabbedPane.addTab("Raw", null, new JScrollPane(textEditor.getComponent()), null);
 		
 		
 		paramsTableModel = new DefaultTableModel(null, PARAMS_HEADERS);
-		JTable table = new JTable(paramsTableModel);
+		JTable table = new JTable(paramsTableModel){
+		    @Override
+		    public Dimension getPreferredScrollableViewportSize() {
+		        Dimension dim = super.getPreferredScrollableViewportSize();
+		        // here we return the pref height
+		        dim.height = getPreferredSize().height-150;
+		        return dim;
+		    }
+		};
 		table.setAutoscrolls(true);
 		table.setAutoCreateRowSorter(true);
 		table.setFillsViewportHeight(true);
@@ -71,11 +72,22 @@ public class TabbedHttpEditor extends Container {
 		tabbedPane.addTab("Params", null, new JScrollPane(table), null);
 		
 		headersTableModel = new DefaultTableModel(null, HEADERS_HEADERS);
-		JTable table2 = new JTable(headersTableModel);
+		JTable table2 = new JTable(headersTableModel){
+		    @Override
+		    public Dimension getPreferredScrollableViewportSize() {
+		        Dimension dim = super.getPreferredScrollableViewportSize();
+		        // here we return the pref height
+		        dim.height = getPreferredSize().height-150;
+		        return dim;
+		    }
+		};
 		table2.setFillsViewportHeight(true);
 		addRightClickActions(table2);
 		table2.setAutoCreateRowSorter(true);
-		tabbedPane.addTab("Headers", null, new JScrollPane(table2), null);
+		JScrollPane scrollPane = new JScrollPane();
+		scrollPane.setViewportView(table2);
+		scrollPane.setAutoscrolls(false);
+		tabbedPane.addTab("Headers", null, scrollPane, null);
 		
 	}
 	
@@ -85,6 +97,14 @@ public class TabbedHttpEditor extends Container {
 		IRequestInfo req = burpCallback.getHelpers().analyzeRequest(request);
 		
 		loadData(request.getRequest(), req.getParameters(), req.getHeaders());
+	}
+	
+	public void loadResponse(IHttpRequestResponse response){
+		this.requestResponse = response;
+		
+		IResponseInfo req = burpCallback.getHelpers().analyzeResponse(response.getResponse());
+		 
+		loadData(response.getResponse(), new LinkedList<IParameter>(), req.getHeaders());
 	}
 	
 	private void loadData(byte[] data, List<IParameter> params, List<String> headers){

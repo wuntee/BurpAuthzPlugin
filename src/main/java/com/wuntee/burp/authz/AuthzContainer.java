@@ -41,11 +41,10 @@ public class AuthzContainer extends Container {
 	private JTable requestTable;
 	private JTable responseTable;
 	
-	//private BurpTextEditorWithData originalRequestEditor;
 	private TabbedHttpEditor originalRequest;
-	private BurpTextEditorWithData originalResponseEditor;
-	private BurpTextEditorWithData modifiedRequestEditor;
-	private BurpTextEditorWithData responseEditor;
+	private TabbedHttpEditor originalResponse;
+	private TabbedHttpEditor modifiedRequest;
+	private TabbedHttpEditor responseEditor;
 	private BurpTextEditorWithData cookieEditor;
 	
 	private DefaultTableModel requestTableModel;
@@ -85,15 +84,9 @@ public class AuthzContainer extends Container {
 		
 		// TABBED PANNEL
 		originalRequest = new TabbedHttpEditor(burpCallback);
-		//originalRequestEditor = new BurpTextEditorWithData(burpCallback);
-		originalResponseEditor = new BurpTextEditorWithData(burpCallback);
-		modifiedRequestEditor = new BurpTextEditorWithData(burpCallback);
-		responseEditor = new BurpTextEditorWithData(burpCallback);
-		
-		//addRightClickActions(originalRequest.getTextEditor());
-		addRightClickActions(originalResponseEditor);
-		addRightClickActions(modifiedRequestEditor);
-		addRightClickActions(responseEditor);
+		originalResponse = new TabbedHttpEditor(burpCallback);
+		modifiedRequest = new TabbedHttpEditor(burpCallback);
+		responseEditor = new TabbedHttpEditor(burpCallback);
 		
 		
 		// COOKIE EDITOR
@@ -198,7 +191,6 @@ public class AuthzContainer extends Container {
 		});
 		requestTable.removeColumn(requestTable.getColumn(REQUEST_OBJECT_KEY));
 		JScrollPane scrollPane_1 = new JScrollPane(requestTable);
-		scrollPane_1.setEnabled(false);
 		GridBagConstraints gbc_scrollPane_1 = new GridBagConstraints();
 		gbc_scrollPane_1.insets = new Insets(0, 0, 5, 0);
 		gbc_scrollPane_1.fill = GridBagConstraints.BOTH;
@@ -264,7 +256,6 @@ public class AuthzContainer extends Container {
 		responseTable.removeColumn(responseTable.getColumn(REQUEST_OBJECT_KEY));
 		responseTable.removeColumn(responseTable.getColumn(RESPONSE_OBJECT_KEY));
 		JScrollPane scrollPane_2 = new JScrollPane(responseTable);
-		scrollPane_2.setEnabled(false);
 		GridBagConstraints gbc_scrollPane_2 = new GridBagConstraints();
 		gbc_scrollPane_2.fill = GridBagConstraints.BOTH;
 		gbc_scrollPane_2.gridx = 0;
@@ -284,9 +275,9 @@ public class AuthzContainer extends Container {
 		JScrollPane scrollPane_3 = new JScrollPane(originalRequest);
 		tabbedPane.addTab("Original Request", scrollPane_3);		
 		
-		tabbedPane.addTab("Original Response", new JScrollPane(originalResponseEditor.getComponent()));
-		tabbedPane.addTab("Modified Request", new JScrollPane(modifiedRequestEditor.getComponent()));
-		tabbedPane.addTab("Response", new JScrollPane(responseEditor.getComponent()));
+		tabbedPane.addTab("Original Response", new JScrollPane(originalResponse));
+		tabbedPane.addTab("Modified Request", new JScrollPane(modifiedRequest));
+		tabbedPane.addTab("Response", new JScrollPane(responseEditor));
 		GridBagConstraints gbc_tabbedPane = new GridBagConstraints();
 		gbc_tabbedPane.insets = new Insets(0, 0, 5, 0);
 		gbc_tabbedPane.fill = GridBagConstraints.BOTH;
@@ -350,28 +341,20 @@ public class AuthzContainer extends Container {
 	
 	private void setData(IHttpRequestResponse request, IHttpRequestResponse response){
 		if(request != null){
-			//originalRequestEditor.setText(request.getRequest());
-			//originalRequestEditor.putData(TEXTEDITOR_REQUET_KEY, request);
 			originalRequest.loadRequest(request);
-			originalResponseEditor.setText(request.getResponse());
-			originalResponseEditor.putData(TEXTEDITOR_REQUET_KEY, request);
+			originalResponse.loadResponse(request);
 		} else {
 			//originalRequestEditor.setText(new byte[]{});
 			//originalRequestEditor.removeData(TEXTEDITOR_REQUET_KEY);
 			originalRequest.clearData();
-			originalResponseEditor.setText(new byte[]{});
-			originalResponseEditor.removeData(TEXTEDITOR_REQUET_KEY);
+			originalResponse.clearData();
 		}
 		if(response != null){
-			modifiedRequestEditor.setText(response.getRequest());
-			modifiedRequestEditor.putData(TEXTEDITOR_REQUET_KEY, response);
-			responseEditor.setText(response.getResponse());
-			responseEditor.putData(TEXTEDITOR_REQUET_KEY, response);
+			modifiedRequest.loadRequest(response);
+			responseEditor.loadResponse(response);
 		} else {
-			modifiedRequestEditor.setText(new byte[]{});
-			modifiedRequestEditor.removeData(TEXTEDITOR_REQUET_KEY);
-			responseEditor.setText(new byte[]{});
-			responseEditor.removeData(TEXTEDITOR_REQUET_KEY);
+			modifiedRequest.clearData();
+			responseEditor.clearData();
 		}
 	}
 	
@@ -488,32 +471,6 @@ public class AuthzContainer extends Container {
 				popup.show(e.getComponent(), e.getX(), e.getY());
 			}
 		});
-	}
-	
-	private void addRightClickActions(final BurpTextEditorWithData editor){
-		JPopupMenu popupMenu = new JPopupMenu();
-		
-		JMenuItem mntmSendToRepeater = new JMenuItem("Send to repeater");
-		mntmSendToRepeater.addActionListener(new ActionListener(){
-			public void actionPerformed(ActionEvent e) {
-		    	   IHttpRequestResponse req = (IHttpRequestResponse)editor.getData(TEXTEDITOR_REQUET_KEY);
-		    	   if(req != null){
-		    		   BurpApiHelper.sendRequestResponseToRepeater(burpCallback, req);
-		    	   }				
-			}
-		});
-		popupMenu.add(mntmSendToRepeater);
-		JMenuItem mntmSendToIntruder = new JMenuItem("Send to intruder");
-		mntmSendToIntruder.addActionListener(new ActionListener(){
-			public void actionPerformed(ActionEvent e) {
-		    	   IHttpRequestResponse req = (IHttpRequestResponse)editor.getData(TEXTEDITOR_REQUET_KEY);
-		    	   if(req != null){
-		    		   BurpApiHelper.sendRequestResponseToIntruder(burpCallback, req);
-		    	   }				
-			}
-		});
-		popupMenu.add(mntmSendToIntruder);
-		addPopup(editor.getComponent(), popupMenu);
 	}
 	
 
