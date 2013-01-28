@@ -90,7 +90,7 @@ public class AuthzContainer extends Container {
 		modifiedRequestEditor = new BurpTextEditorWithData(burpCallback);
 		responseEditor = new BurpTextEditorWithData(burpCallback);
 		
-		addRightClickActions(originalRequest.getTextEditor());
+		//addRightClickActions(originalRequest.getTextEditor());
 		addRightClickActions(originalResponseEditor);
 		addRightClickActions(modifiedRequestEditor);
 		addRightClickActions(responseEditor);
@@ -141,6 +141,7 @@ public class AuthzContainer extends Container {
 		
 		JPanel panel = new JPanel();
 		splitPane.setLeftComponent(panel);
+		
 		GridBagLayout gbl_panel = new GridBagLayout();
 		gbl_panel.columnWidths = new int[]{0, 0};
 		gbl_panel.rowHeights = new int[]{0};
@@ -159,6 +160,21 @@ public class AuthzContainer extends Container {
 		gbc_label_1.gridy = 0;
 		panel.add(label_1, gbc_label_1);
 		requestTable = new JTable(requestTableModel);
+		
+		JPopupMenu popupMenu = new JPopupMenu();
+		addPopup(requestTable, popupMenu);
+		JMenuItem mntmRemove = new JMenuItem("Remove");
+		mntmRemove.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e) {
+				int selected[] = requestTable.getSelectedRows();
+				for(int col : selected){
+					requestTableModel.getDataVector().remove(col);
+				}
+				requestTableModel.fireTableDataChanged();
+			}
+		});
+		popupMenu.add(mntmRemove);
+
 		requestTable.setAutoCreateRowSorter(true);
 		requestTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 		//"Method", "URL", "Parms", "Response Code", REQUEST_OBJECT_KEY

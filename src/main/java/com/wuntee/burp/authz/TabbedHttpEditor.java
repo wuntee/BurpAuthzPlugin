@@ -22,13 +22,14 @@ import burp.IBurpExtenderCallbacks;
 import burp.IHttpRequestResponse;
 import burp.IParameter;
 import burp.IRequestInfo;
+import burp.ITextEditor;
 
 public class TabbedHttpEditor extends Container {
 
 	private static final long serialVersionUID = 1L;
 
 	private IBurpExtenderCallbacks burpCallback;
-	private BurpTextEditorWithData textEditor;
+	private ITextEditor textEditor;
 	
 	private DefaultTableModel paramsTableModel;
 	private String[] PARAMS_HEADERS = {"Type", "Name", "Value"};
@@ -36,11 +37,11 @@ public class TabbedHttpEditor extends Container {
 	private String[] HEADERS_HEADERS = {"Name", "Value"};
 	
 	private IHttpRequestResponse requestResponse;
-	
+		
 	public TabbedHttpEditor(IBurpExtenderCallbacks burpCallback){
 		this.burpCallback = burpCallback;
 		
-		textEditor = new BurpTextEditorWithData(burpCallback);
+		textEditor = burpCallback.createTextEditor();
 		
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[]{0, 0};
@@ -58,6 +59,7 @@ public class TabbedHttpEditor extends Container {
 		
 		addRightClickActions(textEditor.getComponent());
 		tabbedPane.addTab("Raw", null, new JScrollPane(textEditor.getComponent()), null);
+		textEditor.getComponent().setSize(100, 100);
 		
 		paramsTableModel = new DefaultTableModel(null, PARAMS_HEADERS);
 		JTable table = new JTable(paramsTableModel);
@@ -93,16 +95,32 @@ public class TabbedHttpEditor extends Container {
 			} catch (UnsupportedEncodingException e) {
 				type = "";
 			}
-			
-			paramsTableModel.addRow(new String[]{type, param.getName(), param.getValue()});
+			String name = "";
+			if(param.getName() != null){
+				name = param.getName();
+			}
+			String value = "";
+			if(param.getValue() != null){
+				value = param.getValue();
+			}
+			paramsTableModel.addRow(new String[]{type, name, value});
 		}
 		
 		headersTableModel.getDataVector().removeAllElements();
-		for(String header : headers){
-			String h[] = header.split(":", 2);
-			String key = (h[0] != null) ? h[0].trim() : "";
-			String val = (h[1] != null) ? h[1].trim() : "";
-			headersTableModel.addRow(new String[]{key, val});
+		if(headers.size() > 1){
+			for(int i=1; i< headers.size(); i++){
+				String header = headers.get(i);
+				String h[] = header.split(":", 2);
+				String key = "";
+				if(h.length >= 1){
+					key = h[0].trim();
+				}
+				String val = "";
+				if(h.length >= 2){
+					val = h[1].trim();
+				}
+				headersTableModel.addRow(new String[]{key, val});
+			}
 		}
 	}
 	
@@ -113,7 +131,7 @@ public class TabbedHttpEditor extends Container {
 		textEditor.setText(new byte[]{});
 	}
 	
-	public BurpTextEditorWithData getTextEditor(){
+	public ITextEditor getTextEditor(){
 		return(this.textEditor);
 	}
 
