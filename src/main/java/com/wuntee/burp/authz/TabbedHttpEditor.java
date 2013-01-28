@@ -112,12 +112,7 @@ public class TabbedHttpEditor extends Container {
 		
 		paramsTableModel.getDataVector().removeAllElements();
 		for(IParameter param : params){
-			String type;
-			try {
-				type = new String(new byte[]{param.getType()},"UTF-8");
-			} catch (UnsupportedEncodingException e) {
-				type = "";
-			}
+			String type = BurpApiHelper.iParameterTypeToString(param);
 			String name = "";
 			if(param.getName() != null){
 				name = param.getName();
