@@ -340,22 +340,28 @@ public class AuthzContainer extends Container {
 	}
 	
 	private void setData(IHttpRequestResponse request, IHttpRequestResponse response){
+		originalRequest.clearData();
+		originalResponse.clearData();
+		modifiedRequest.clearData();
+		responseEditor.clearData();
+
 		if(request != null){
-			originalRequest.loadRequest(request);
-			originalResponse.loadResponse(request);
-		} else {
-			//originalRequestEditor.setText(new byte[]{});
-			//originalRequestEditor.removeData(TEXTEDITOR_REQUET_KEY);
-			originalRequest.clearData();
-			originalResponse.clearData();
+			if(request.getRequest() != null){
+				originalRequest.loadRequest(request);
+			}
+			if(request.getResponse() != null){
+				originalResponse.loadResponse(request);			
+			}
 		}
 		if(response != null){
-			modifiedRequest.loadRequest(response);
-			responseEditor.loadResponse(response);
-		} else {
-			modifiedRequest.clearData();
-			responseEditor.clearData();
+			if(response.getRequest() != null){
+				modifiedRequest.loadRequest(response);			
+			}
+			if(response.getResponse() != null){			
+				responseEditor.loadResponse(response);
+			}
 		}
+		
 	}
 	
 	private void runRequest(){
@@ -440,19 +446,28 @@ public class AuthzContainer extends Container {
 	}
 	
 	public IHttpRequestResponse getRequestObjectByIndex(DefaultTableModel model, int index){
-		return((IHttpRequestResponse)model.getValueAt(index, model.findColumn(REQUEST_OBJECT_KEY)));
+		IHttpRequestResponse ret = (IHttpRequestResponse)model.getValueAt(index, model.findColumn(REQUEST_OBJECT_KEY));
+		System.out.println("request: " + ret);
+		System.out.println("request.request: " + ret.getRequest());
+		System.out.println("request.response: " + ret.getResponse());
+		return((IHttpRequestResponse)ret);
 	}
 	
 	public IHttpRequestResponse getResponseObjectByIndex(DefaultTableModel model, int index){
 		return((IHttpRequestResponse)model.getValueAt(index, model.findColumn(RESPONSE_OBJECT_KEY)));
 	}
 	
-	public void addRequests(IHttpRequestResponse responses[]){
-		for(IHttpRequestResponse response : responses){
-			IRequestInfo info = burpCallback.getHelpers().analyzeRequest(response);
-			IResponseInfo respInfo = burpCallback.getHelpers().analyzeResponse(response.getResponse());
-			//{"Method", "URL", "Parms", "Response Code", OBJECT_KEY}
-			requestTableModel.addRow(new Object[]{info.getMethod(), info.getUrl(), (info.getParameters().size() > 0), respInfo.getStatusCode(), response});
+	public void addRequests(IHttpRequestResponse requestResponse[]){
+		for(IHttpRequestResponse rr : requestResponse){
+			IRequestInfo info = burpCallback.getHelpers().analyzeRequest(rr);
+			// The response may be null if being sent from the proxy, prior to a drop
+			//{"Method", "URL", "Parms", "Response Code", REQUEST_OBJECT_KEY}
+			if(rr.getResponse() != null){
+				IResponseInfo respInfo = burpCallback.getHelpers().analyzeResponse(rr.getResponse());
+				requestTableModel.addRow(new Object[]{info.getMethod(), info.getUrl(), (info.getParameters().size() > 0), respInfo.getStatusCode(), rr});
+			} else {
+				requestTableModel.addRow(new Object[]{info.getMethod(), info.getUrl(), (info.getParameters().size() > 0), "n/a", rr});
+			}
 		}
 	}
 	private static void addPopup(Component component, final JPopupMenu popup) {
