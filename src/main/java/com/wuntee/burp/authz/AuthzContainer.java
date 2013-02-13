@@ -103,13 +103,13 @@ public class AuthzContainer extends Container {
 		gbl_panel_3.rowWeights = new double[]{0, 1};
 		panel_3.setLayout(gbl_panel_3);
 		
-		JLabel label = new JLabel("New Cookie", SwingConstants.LEFT);
-		GridBagConstraints gbc_label = new GridBagConstraints();
-		gbc_label.anchor = GridBagConstraints.WEST;
-		gbc_label.insets = new Insets(0, 0, 5, 0);
-		gbc_label.gridx = 0;
-		gbc_label.gridy = 0;
-		panel_3.add(label, gbc_label);
+		JLabel lblNewHeader = new JLabel("New Header", SwingConstants.LEFT);
+		GridBagConstraints gbc_lblNewHeader = new GridBagConstraints();
+		gbc_lblNewHeader.anchor = GridBagConstraints.WEST;
+		gbc_lblNewHeader.insets = new Insets(0, 0, 5, 0);
+		gbc_lblNewHeader.gridx = 0;
+		gbc_lblNewHeader.gridy = 0;
+		panel_3.add(lblNewHeader, gbc_lblNewHeader);
 		
 		cookieEditor = new BurpTextEditorWithData(burpCallback);
 		cookieEditor.setText("Cookie:".getBytes());
@@ -369,6 +369,13 @@ public class AuthzContainer extends Container {
 			// Clear responses
 			clearTable(responseTableModel);
 			
+			// First find what the key is we are looking for - may not be a cookie
+			String key = "cookie:";
+			String[] kv = new String(cookieEditor.getText()).split(":", 2);
+			if(kv.length == 2){
+				key = kv[0];
+			}
+			
 			// For each request, grab request object, replace cookie, send request, add response to response table
 			for(int i=0; i<requestTableModel.getRowCount(); i++){
 				IHttpRequestResponse req = getRequestObjectByIndex(requestTableModel, i);
@@ -379,7 +386,7 @@ public class AuthzContainer extends Container {
 				// header of request should be a string
 				List<String> headers = reqInfo.getHeaders();
 				for(int h=0; h<headers.size(); h++){
-					if(headers.get(h).toLowerCase().startsWith("cookie:")){
+					if(headers.get(h).toLowerCase().startsWith(key.toLowerCase())){
 						headers.set(h, new String(cookieEditor.getText()));
 						break;
 					}
