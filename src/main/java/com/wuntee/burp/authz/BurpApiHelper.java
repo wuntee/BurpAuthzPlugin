@@ -3,6 +3,7 @@ package com.wuntee.burp.authz;
 import burp.IBurpExtenderCallbacks;
 import burp.IHttpRequestResponse;
 import burp.IParameter;
+import burp.IResponseInfo;
 
 public class BurpApiHelper {
 	public static void sendRequestResponseToRepeater(IBurpExtenderCallbacks callback, IHttpRequestResponse req){
@@ -11,6 +12,20 @@ public class BurpApiHelper {
 	
 	public static void sendRequestResponseToIntruder(IBurpExtenderCallbacks callback, IHttpRequestResponse req){
 		callback.sendToIntruder(req.getHttpService().getHost(), req.getHttpService().getPort(), req.getHttpService().getProtocol().equalsIgnoreCase("https"), req.getRequest(), null);
+	}
+	
+	public static int getResponseBodyLength(IResponseInfo responseInfo, byte[] response) {
+		for (String header: responseInfo.getHeaders()) {
+			if (header.toLowerCase().startsWith("content-length:")) {
+				return Integer.parseInt(header.substring(header.indexOf(":") + 1).trim());
+			}
+		}
+		
+		// if no content-length header returned, let's calculate it manually
+		String resp = new String(response);
+		String body = resp.substring(responseInfo.getBodyOffset());
+				
+		return body.length();
 	}
 	
 	public static String iParameterTypeToString(IParameter param){
