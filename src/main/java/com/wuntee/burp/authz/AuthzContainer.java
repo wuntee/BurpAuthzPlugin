@@ -12,6 +12,7 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.List;
 
@@ -399,25 +400,36 @@ public class AuthzContainer extends Container {
 				addResponse(req, resp);
 			}
 		} catch(Throwable e){
-			System.out.println(e);
-			e.printStackTrace();
+			PrintWriter writer = new PrintWriter(burpCallback.getStderr());
+			writer.write(e.getMessage());
+			writer.write("\n");
+			e.printStackTrace(writer);
 		}
 	}
 	
-	private void addResponse(IHttpRequestResponse request, IHttpRequestResponse response){
+	private void addResponse(IHttpRequestResponse originalRequest, IHttpRequestResponse replayedRequest){
 		//{"Method", "URL", "Parms","Orig Response Size", "Response Size", "Orig Return Code", "Return Code", "Diff Bytes", "similarity", REQUEST_OBJECT_KEY, RESPONSE_OBJECT_KEY};
-		IRequestInfo reqInfo = burpCallback.getHelpers().analyzeRequest(response);
-		IRequestInfo origReqInfo = burpCallback.getHelpers().analyzeRequest(request);
+		IRequestInfo originalRequestInfo = burpCallback.getHelpers().analyzeRequest(originalRequest);
+		IRequestInfo replayedRequestInfo = burpCallback.getHelpers().analyzeRequest(replayedRequest);
 		
-		IResponseInfo respInfo = burpCallback.getHelpers().analyzeResponse(response.getResponse());
-		IResponseInfo origrespInfo = burpCallback.getHelpers().analyzeResponse(request.getResponse());
+		IResponseInfo originalResponseInfo = burpCallback.getHelpers().analyzeResponse(originalRequest.getResponse());
+		IResponseInfo replayedResponseInfo = burpCallback.getHelpers().analyzeResponse(replayedRequest.getResponse());
 		
 		int diff = -1;
 		int similarity = -1;
+		
+		String originalResponse = new String(originalRequest.getResponse());
+		String replayedResponse = new String(replayedRequest.getResponse());
+		
+		int originalResponseLength = BurpApiHelper.getResponseBodyLength(originalResponseInfo, originalRequest.getResponse());
+		int replayedResponseLength = BurpApiHelper.getResponseBodyLength(replayedResponseInfo, replayedRequest.getResponse());
+		
 		try{
-			byte[] diffb = delta.compute(request.getResponse(), response.getResponse());
+			
+			byte[] diffb = delta.compute(originalResponse.substring(originalResponseInfo.getBodyOffset()).getBytes(),
+									     replayedResponse.substring(replayedResponseInfo.getBodyOffset()).getBytes());
 			diff = diffb.length;
-			double total = request.getResponse().length + response.getRequest().length;
+			double total = originalResponseLength + replayedResponseLength;
 			double percent = (1.0-((diff*2)/total))*100.0;
 			similarity = (int)percent;
 			if(similarity > 100){
@@ -427,22 +439,24 @@ public class AuthzContainer extends Container {
 			}
 				
 		} catch (Exception e) {
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+			PrintWriter writer = new PrintWriter(burpCallback.getStderr());
+			writer.write(e.getMessage());
+			writer.write("\n");
+			e.printStackTrace(writer);
 		}
 		
 		responseTableModel.addRow(new Object[]{
-				reqInfo.getMethod(), 
-				origReqInfo.getUrl(), 
-				(reqInfo.getParameters().size() > 0), 
-				request.getResponse().length, 
-				response.getResponse().length,
-				origrespInfo.getStatusCode(),
-				respInfo.getStatusCode(),
+				replayedRequestInfo.getMethod(), 
+				originalRequestInfo.getUrl(), 
+				(replayedRequestInfo.getParameters().size() > 0), 
+				originalResponseLength,
+				replayedResponseLength,
+				originalResponseInfo.getStatusCode(),
+				replayedResponseInfo.getStatusCode(),
 				diff,
 				similarity,
-				request, 
-				response
+				originalRequest, 
+				replayedRequest
 		});
 		
 	}
@@ -454,9 +468,9 @@ public class AuthzContainer extends Container {
 	
 	public IHttpRequestResponse getRequestObjectByIndex(DefaultTableModel model, int index){
 		IHttpRequestResponse ret = (IHttpRequestResponse)model.getValueAt(index, model.findColumn(REQUEST_OBJECT_KEY));
-		System.out.println("request: " + ret);
-		System.out.println("request.request: " + ret.getRequest());
-		System.out.println("request.response: " + ret.getResponse());
+		//System.out.println("request: " + ret);
+		//System.out.println("request.request: " + ret.getRequest());
+		//System.out.println("request.response: " + ret.getResponse());
 		return((IHttpRequestResponse)ret);
 	}
 	
