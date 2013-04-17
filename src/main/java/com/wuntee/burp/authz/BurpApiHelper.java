@@ -17,7 +17,7 @@ public class BurpApiHelper {
 	public static int getResponseBodyLength(IResponseInfo responseInfo, byte[] response) {
 		for (String header: responseInfo.getHeaders()) {
 			if (header.toLowerCase().startsWith("content-length:")) {
-				return Integer.parseInt(header.substring(header.indexOf(":")).trim());
+				return Integer.parseInt(header.substring(header.indexOf(":") + 1).trim());
 			}
 		}
 		
