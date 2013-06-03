@@ -382,6 +382,11 @@ public class AuthzContainer extends Container {
 				IHttpRequestResponse req = getRequestObjectByIndex(requestTableModel, i);
 				byte[] rawRequest = req.getRequest();
 				
+				if(req.getResponse() == null){
+					req.setResponse(new byte[]{});
+				}
+				System.out.println("RawRequest: " + rawRequest);
+				
 				IRequestInfo reqInfo = burpCallback.getHelpers().analyzeRequest(rawRequest);
 				
 				// header of request should be a string
@@ -468,9 +473,10 @@ public class AuthzContainer extends Container {
 	
 	public IHttpRequestResponse getRequestObjectByIndex(DefaultTableModel model, int index){
 		IHttpRequestResponse ret = (IHttpRequestResponse)model.getValueAt(index, model.findColumn(REQUEST_OBJECT_KEY));
-		//System.out.println("request: " + ret);
-		//System.out.println("request.request: " + ret.getRequest());
-		//System.out.println("request.response: " + ret.getResponse());
+		System.out.println("Getting IHttpRequestResponse(" + index + "):");
+		System.out.println("\trequest[" + index + "]: " + ret);
+		System.out.println("\trequest.request[" + index + "]: " + ret.getRequest());
+		System.out.println("\trequest.response[" + index + "]: " + ret.getResponse());
 		return((IHttpRequestResponse)ret);
 	}
 	
@@ -479,7 +485,9 @@ public class AuthzContainer extends Container {
 	}
 	
 	public void addRequests(IHttpRequestResponse requestResponse[]){
-		for(IHttpRequestResponse rr : requestResponse){
+		for(int i=0; i<requestResponse.length; i++ ){
+			IHttpRequestResponse rr = requestResponse[i];
+			
 			IRequestInfo info = burpCallback.getHelpers().analyzeRequest(rr);
 			// The response may be null if being sent from the proxy, prior to a drop
 			//{"Method", "URL", "Parms", "Response Code", REQUEST_OBJECT_KEY}
@@ -489,6 +497,11 @@ public class AuthzContainer extends Container {
 			} else {
 				requestTableModel.addRow(new Object[]{info.getMethod(), info.getUrl(), (info.getParameters().size() > 0), "n/a", rr});
 			}
+			System.out.println("adding IHttpRequestResponse(" + i + ")");
+			System.out.println("\trequest[" + i + "]: " + rr);
+			System.out.println("\trequest.request[" + i + "]: " + rr.getRequest());
+			System.out.println("\trequest.response[" + i + "]: " + rr.getResponse());
+
 		}
 	}
 	private static void addPopup(Component component, final JPopupMenu popup) {
