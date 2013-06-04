@@ -31,6 +31,7 @@ import javax.swing.table.TableCellRenderer;
 
 import burp.IBurpExtenderCallbacks;
 import burp.IHttpRequestResponse;
+import burp.IHttpRequestResponsePersisted;
 import burp.IRequestInfo;
 import burp.IResponseInfo;
 
@@ -381,14 +382,8 @@ public class AuthzContainer extends Container {
 			for(int i=0; i<requestTableModel.getRowCount(); i++){
 				IHttpRequestResponse req = getRequestObjectByIndex(requestTableModel, i);
 				byte[] rawRequest = req.getRequest();
-				
-				if(req.getResponse() == null){
-					req.setResponse(new byte[]{});
-				}
-				System.out.println("RawRequest: " + rawRequest);
-				
+												
 				IRequestInfo reqInfo = burpCallback.getHelpers().analyzeRequest(rawRequest);
-				
 				// header of request should be a string
 				List<String> headers = reqInfo.getHeaders();
 				for(int h=0; h<headers.size(); h++){
@@ -397,9 +392,8 @@ public class AuthzContainer extends Container {
 						break;
 					}
 				}
-	
 				byte message[] = burpCallback.getHelpers().buildHttpMessage(headers, Arrays.copyOfRange(rawRequest, reqInfo.getBodyOffset(), rawRequest.length));
-				
+								
 				IHttpRequestResponse resp = burpCallback.makeHttpRequest(req.getHttpService(), message);
 				
 				addResponse(req, resp);
@@ -417,21 +411,33 @@ public class AuthzContainer extends Container {
 		IRequestInfo originalRequestInfo = burpCallback.getHelpers().analyzeRequest(originalRequest);
 		IRequestInfo replayedRequestInfo = burpCallback.getHelpers().analyzeRequest(replayedRequest);
 		
-		IResponseInfo originalResponseInfo = burpCallback.getHelpers().analyzeResponse(originalRequest.getResponse());
+		int originalResponseLength;
+		byte[] originalResponseBytes;
+		short originalResponseStatusCode;
+		// When the request has been dropped, the response is null
+		if(originalRequest.getResponse() == null){
+			originalResponseLength = 0;
+			originalResponseBytes = new byte[]{};
+			originalResponseStatusCode = -1;
+		} else {
+			IResponseInfo originalResponseInfo = burpCallback.getHelpers().analyzeResponse(originalRequest.getResponse());
+			String originalResponse = new String(originalRequest.getResponse());
+			originalResponseLength = BurpApiHelper.getResponseBodyLength(originalResponseInfo, originalRequest.getResponse());
+			originalResponseBytes = originalResponse.substring(originalResponseInfo.getBodyOffset()).getBytes();
+			originalResponseStatusCode = originalResponseInfo.getStatusCode();
+		}
 		IResponseInfo replayedResponseInfo = burpCallback.getHelpers().analyzeResponse(replayedRequest.getResponse());
 		
 		int diff = -1;
 		int similarity = -1;
 		
-		String originalResponse = new String(originalRequest.getResponse());
 		String replayedResponse = new String(replayedRequest.getResponse());
 		
-		int originalResponseLength = BurpApiHelper.getResponseBodyLength(originalResponseInfo, originalRequest.getResponse());
 		int replayedResponseLength = BurpApiHelper.getResponseBodyLength(replayedResponseInfo, replayedRequest.getResponse());
 		
 		try{
 			
-			byte[] diffb = delta.compute(originalResponse.substring(originalResponseInfo.getBodyOffset()).getBytes(),
+			byte[] diffb = delta.compute(originalResponseBytes,
 									     replayedResponse.substring(replayedResponseInfo.getBodyOffset()).getBytes());
 			diff = diffb.length;
 			double total = originalResponseLength + replayedResponseLength;
@@ -456,7 +462,7 @@ public class AuthzContainer extends Container {
 				(replayedRequestInfo.getParameters().size() > 0), 
 				originalResponseLength,
 				replayedResponseLength,
-				originalResponseInfo.getStatusCode(),
+				originalResponseStatusCode,
 				replayedResponseInfo.getStatusCode(),
 				diff,
 				similarity,
@@ -472,12 +478,8 @@ public class AuthzContainer extends Container {
 	}
 	
 	public IHttpRequestResponse getRequestObjectByIndex(DefaultTableModel model, int index){
-		IHttpRequestResponse ret = (IHttpRequestResponse)model.getValueAt(index, model.findColumn(REQUEST_OBJECT_KEY));
-		System.out.println("Getting IHttpRequestResponse(" + index + "):");
-		System.out.println("\trequest[" + index + "]: " + ret);
-		System.out.println("\trequest.request[" + index + "]: " + ret.getRequest());
-		System.out.println("\trequest.response[" + index + "]: " + ret.getResponse());
-		return((IHttpRequestResponse)ret);
+		IHttpRequestResponsePersisted ret = (IHttpRequestResponsePersisted)model.getValueAt(index, model.findColumn(REQUEST_OBJECT_KEY));
+		return(ret);
 	}
 	
 	public IHttpRequestResponse getResponseObjectByIndex(DefaultTableModel model, int index){
@@ -491,17 +493,14 @@ public class AuthzContainer extends Container {
 			IRequestInfo info = burpCallback.getHelpers().analyzeRequest(rr);
 			// The response may be null if being sent from the proxy, prior to a drop
 			//{"Method", "URL", "Parms", "Response Code", REQUEST_OBJECT_KEY}
+			IHttpRequestResponsePersisted rrp = burpCallback.saveBuffersToTempFiles(rr);
+			
 			if(rr.getResponse() != null){
 				IResponseInfo respInfo = burpCallback.getHelpers().analyzeResponse(rr.getResponse());
-				requestTableModel.addRow(new Object[]{info.getMethod(), info.getUrl(), (info.getParameters().size() > 0), respInfo.getStatusCode(), rr});
+				requestTableModel.addRow(new Object[]{info.getMethod(), info.getUrl(), (info.getParameters().size() > 0), respInfo.getStatusCode(), rrp});
 			} else {
-				requestTableModel.addRow(new Object[]{info.getMethod(), info.getUrl(), (info.getParameters().size() > 0), "n/a", rr});
+				requestTableModel.addRow(new Object[]{info.getMethod(), info.getUrl(), (info.getParameters().size() > 0), "n/a", rrp});
 			}
-			System.out.println("adding IHttpRequestResponse(" + i + ")");
-			System.out.println("\trequest[" + i + "]: " + rr);
-			System.out.println("\trequest.request[" + i + "]: " + rr.getRequest());
-			System.out.println("\trequest.response[" + i + "]: " + rr.getResponse());
-
 		}
 	}
 	private static void addPopup(Component component, final JPopupMenu popup) {
