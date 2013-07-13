@@ -244,6 +244,11 @@ public interface IBurpExtenderCallbacks
     void registerSessionHandlingAction(ISessionHandlingAction action);
 
     /**
+     * This method is used to unload the extension from Burp Suite.
+     */
+    void unloadExtension();
+
+    /**
      * This method is used to add a custom tab to the main Burp Suite window.
      *
      * @param tab An object created by the extension that implements the
@@ -274,22 +279,28 @@ public interface IBurpExtenderCallbacks
      *
      * @param controller An object created by the extension that implements the
      * <code>IMessageEditorController</code> interface. This parameter is
-     * optional and may be
-     * <code>null</code>. If it is provided, then the message editor will query
-     * the controller when required to obtain details about the currently
-     * displayed message, including the
+     * optional and may be <code>null</code>. If it is provided, then the
+     * message editor will query the controller when required to obtain details
+     * about the currently displayed message, including the
      * <code>IHttpService</code> for the message, and the associated request or
      * response message. If a controller is not provided, then the message
      * editor will not support context menu actions, such as sending requests to
      * other Burp tools.
      * @param editable Indicates whether the editor created should be editable,
      * or used only for message viewing.
-     * @return An object that implements the
-     * <code>IMessageEditor</code> interface, and which the extension can use in
-     * its own UI.
+     * @return An object that implements the <code>IMessageEditor</code>
+     * interface, and which the extension can use in its own UI.
      */
     IMessageEditor createMessageEditor(IMessageEditorController controller,
             boolean editable);
+
+    /**
+     * This method returns the command line arguments that were passed to Burp
+     * on startup.
+     *
+     * @return The command line arguments that were passed to Burp on startup.
+     */
+    String[] getCommandLineArguments();
 
     /**
      * This method is used to save configuration settings for the extension in a
@@ -298,9 +309,8 @@ public interface IBurpExtenderCallbacks
      * <code>loadExtensionSetting()</code>.
      *
      * @param name The name of the setting.
-     * @param value The value of the setting. If this value is
-     * <code>null</code> then any existing setting with the specified name will
-     * be removed.
+     * @param value The value of the setting. If this value is <code>null</code>
+     * then any existing setting with the specified name will be removed.
      */
     void saveExtensionSetting(String name, String value);
 
@@ -310,8 +320,8 @@ public interface IBurpExtenderCallbacks
      * <code>saveExtensionSetting()</code>.
      *
      * @param name The name of the setting.
-     * @return The value of the setting, or
-     * <code>null</code> if no value is set.
+     * @return The value of the setting, or <code>null</code> if no value is
+     * set.
      */
     String loadExtensionSetting(String name);
 
@@ -319,9 +329,8 @@ public interface IBurpExtenderCallbacks
      * This method is used to create a new instance of Burp's plain text editor,
      * for the extension to use in its own UI.
      *
-     * @return An object that implements the
-     * <code>ITextEditor</code> interface, and which the extension can use in
-     * its own UI.
+     * @return An object that implements the <code>ITextEditor</code> interface,
+     * and which the extension can use in its own UI.
      */
     ITextEditor createTextEditor();
 
@@ -335,8 +344,8 @@ public interface IBurpExtenderCallbacks
      * @param useHttps Flags whether the protocol is HTTPS or HTTP.
      * @param request The full HTTP request.
      * @param tabCaption An optional caption which will appear on the Repeater
-     * tab containing the request. If this value is
-     * <code>null</code> then a default tab index will be displayed.
+     * tab containing the request. If this value is <code>null</code> then a
+     * default tab index will be displayed.
      */
     void sendToRepeater(
             String host,
@@ -382,6 +391,13 @@ public interface IBurpExtenderCallbacks
             boolean useHttps,
             byte[] request,
             List<int[]> payloadPositionOffsets);
+
+    /**
+     * This method can be used to send data to the Comparer tool.
+     *
+     * @param data The data to be sent to Comparer.
+     */
+    void sendToComparer(byte[] data);
 
     /**
      * This method can be used to send a seed URL to the Burp Spider tool. If
@@ -460,9 +476,9 @@ public interface IBurpExtenderCallbacks
      *
      * @param httpService The HTTP service to which the request should be sent.
      * @param request The full HTTP request.
-     * @return An object that implements the
-     * <code>IHttpRequestResponse</code> interface, and which the extension can
-     * query to obtain the details of the response.
+     * @return An object that implements the <code>IHttpRequestResponse</code>
+     * interface, and which the extension can query to obtain the details of the
+     * response.
      */
     IHttpRequestResponse makeHttpRequest(IHttpService httpService,
             byte[] request);
@@ -488,8 +504,8 @@ public interface IBurpExtenderCallbacks
      * current Suite-wide scope.
      *
      * @param url The URL to query.
-     * @return Returns
-     * <code>true</code> if the URL is within the current Suite-wide scope.
+     * @return Returns <code>true</code> if the URL is within the current
+     * Suite-wide scope.
      */
     boolean isInScope(java.net.URL url);
 
@@ -551,14 +567,26 @@ public interface IBurpExtenderCallbacks
     IScanIssue[] getScanIssues(String urlPrefix);
 
     /**
+     * This method is used to generate a report for the specified Scanner
+     * issues. The report format can be specified. For all other reporting
+     * options, the default settings that appear in the reporting UI wizard are
+     * used.
+     *
+     * @param format The format to be used in the report. Accepted values are
+     * HTML and XML.
+     * @param issues The Scanner issues to be reported.
+     * @param file The file to which the report will be saved.
+     */
+    void generateScanReport(String format, IScanIssue[] issues, java.io.File file);
+
+    /**
      * This method is used to retrieve the contents of Burp's session handling
      * cookie jar. Extensions that provide an
      * <code>ISessionHandlingAction</code> can query and update the cookie jar
      * in order to handle unusual session handling mechanisms.
      *
-     * @return A list of
-     * <code>ICookie</code> objects representing the contents of Burp's session
-     * handling cookie jar.
+     * @return A list of <code>ICookie</code> objects representing the contents
+     * of Burp's session handling cookie jar.
      */
     List<ICookie> getCookieJarContents();
 
@@ -568,11 +596,10 @@ public interface IBurpExtenderCallbacks
      * <code>ISessionHandlingAction</code> can query and update the cookie jar
      * in order to handle unusual session handling mechanisms.
      *
-     * @param cookie An
-     * <code>ICookie</code> object containing details of the cookie to be
-     * updated. If the cookie jar already contains a cookie that matches the
-     * specified domain and name, then that cookie will be updated with the new
-     * value and expiration, unless the new value is
+     * @param cookie An <code>ICookie</code> object containing details of the
+     * cookie to be updated. If the cookie jar already contains a cookie that
+     * matches the specified domain and name, then that cookie will be updated
+     * with the new value and expiration, unless the new value is
      * <code>null</code>, in which case the cookie will be removed. If the
      * cookie jar does not already contain a cookie that matches the specified
      * domain and name, then the cookie will be added.
@@ -665,8 +692,7 @@ public interface IBurpExtenderCallbacks
      * of runtime data, avoiding the need to retain that data in memory.
      *
      * @param buffer The data to be saved to a temporary file.
-     * @return An object that implements the
-     * <code>ITempFile</code> interface.
+     * @return An object that implements the <code>ITempFile</code> interface.
      */
     ITempFile saveToTempFile(byte[] buffer);
 
@@ -677,9 +703,8 @@ public interface IBurpExtenderCallbacks
      * <code>IHttpRequestResponse</code> objects into a form suitable for
      * long-term storage.
      *
-     * @param httpRequestResponse The
-     * <code>IHttpRequestResponse</code> object whose request and response
-     * messages are to be saved to temporary files.
+     * @param httpRequestResponse The <code>IHttpRequestResponse</code> object
+     * whose request and response messages are to be saved to temporary files.
      * @return An object that implements the
      * <code>IHttpRequestResponsePersisted</code> interface.
      */
@@ -693,19 +718,20 @@ public interface IBurpExtenderCallbacks
      * payload positions, Scanner insertion points, and highlights in Scanner
      * issues.
      *
-     * @param httpRequestResponse The
-     * <code>IHttpRequestResponse</code> object to which the markers should be
-     * applied.
+     * @param httpRequestResponse The <code>IHttpRequestResponse</code> object
+     * to which the markers should be applied.
      * @param requestMarkers A list of index pairs representing the offsets of
      * markers to be applied to the request message. Each item in the list must
      * be an int[2] array containing the start and end offsets for the marker.
-     * This parameter is optional and may be
-     * <code>null</code> if no request markers are required.
+     * The markers in the list should be in sequence and not overlapping. This
+     * parameter is optional and may be <code>null</code> if no request markers
+     * are required.
      * @param responseMarkers A list of index pairs representing the offsets of
      * markers to be applied to the response message. Each item in the list must
      * be an int[2] array containing the start and end offsets for the marker.
-     * This parameter is optional and may be
-     * <code>null</code> if no response markers are required.
+     * The markers in the list should be in sequence and not overlapping. This
+     * parameter is optional and may be <code>null</code> if no response markers
+     * are required.
      * @return An object that implements the
      * <code>IHttpRequestResponseWithMarkers</code> interface.
      */
@@ -718,8 +744,7 @@ public interface IBurpExtenderCallbacks
      * This method is used to obtain the descriptive name for the Burp tool
      * identified by the tool flag provided.
      *
-     * @param toolFlag A flag identifying a Burp tool (
-     * <code>TOOL_PROXY</code>,
+     * @param toolFlag A flag identifying a Burp tool ( <code>TOOL_PROXY</code>,
      * <code>TOOL_SCANNER</code>, etc.). Tool flags are defined within this
      * interface.
      * @return The descriptive name for the specified tool.
@@ -746,11 +771,9 @@ public interface IBurpExtenderCallbacks
      * request parameter.
      *
      * @param request The request to be parsed.
-     * @return An array of:
-     * <code>String[] { name, value, type }</code> containing details of the
-     * parameters contained within the request.
-     * @deprecated Use
-     * <code>IExtensionHelpers.analyzeRequest()</code> instead.
+     * @return An array of: <code>String[] { name, value, type }</code>
+     * containing details of the parameters contained within the request.
+     * @deprecated Use <code>IExtensionHelpers.analyzeRequest()</code> instead.
      */
     @Deprecated
     String[][] getParameters(byte[] request);
@@ -761,8 +784,7 @@ public interface IBurpExtenderCallbacks
      *
      * @param message The request to be parsed.
      * @return An array of HTTP headers.
-     * @deprecated Use
-     * <code>IExtensionHelpers.analyzeRequest()</code> or
+     * @deprecated Use <code>IExtensionHelpers.analyzeRequest()</code> or
      * <code>IExtensionHelpers.analyzeResponse()</code> instead.
      */
     @Deprecated
@@ -776,8 +798,7 @@ public interface IBurpExtenderCallbacks
      * @param menuItemCaption The caption to be displayed on the menu item.
      * @param menuItemHandler The handler to be invoked when the user clicks on
      * the menu item.
-     * @deprecated Use
-     * <code>registerContextMenuFactory()</code> instead.
+     * @deprecated Use <code>registerContextMenuFactory()</code> instead.
      */
     @Deprecated
     void registerMenuItem(
